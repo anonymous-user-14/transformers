@@ -53,6 +53,7 @@ class Split(Enum):
     train = "train"
     dev = "dev"
     test = "test"
+    eec  = "eec"
 
 
 class GlueDataset(Dataset):
@@ -118,6 +119,8 @@ class GlueDataset(Dataset):
                     examples = self.processor.get_dev_examples(args.data_dir)
                 elif mode == Split.test:
                     examples = self.processor.get_test_examples(args.data_dir)
+                elif mode == Split.eec:
+                    examples = self.processor.get_eec_examples(args.data_dir)
                 else:
                     examples = self.processor.get_train_examples(args.data_dir)
                 if limit_length is not None:

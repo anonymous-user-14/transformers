@@ -23,7 +23,7 @@ from typing import List, Optional, Union
 from ...file_utils import is_tf_available
 from ...tokenization_utils import PreTrainedTokenizer
 from .utils import DataProcessor, InputExample, InputFeatures
-
+import csv
 
 if is_tf_available():
     import tensorflow as tf
@@ -331,7 +331,7 @@ class Sst2Processor(DataProcessor):
     def get_labels(self):
         """See base class."""
         return ["0", "1"]
-
+    
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
         examples = []
@@ -345,7 +345,65 @@ class Sst2Processor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples
 
+class EmotionProcessor(DataProcessor):
+    """Processor for the Affects in Tweets data set."""
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            None,
+            str(tensor_dict["label"].numpy()),
+        )
 
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_tsv(os.path.join(data_dir, "EI-reg-En-anger-train.txt")), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_tsv(os.path.join(data_dir, "2018-EI-reg-En-anger-dev.txt")), "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_tsv(os.path.join(data_dir, "2018-EI-reg-En-anger-test.txt")), "test")
+
+    def get_eec_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "Equity-Evaluation-Corpus.csv"), "r", encoding="utf-8-sig") as f:
+            x = list(csv.reader(f, delimiter=",", quotechar=None))
+        return self._create_examples_eec(x, "eec")
+    
+    def get_labels(self):
+        """See base class."""
+        return [None]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training, dev and test sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = line[1]
+            label = None if set_type == "test" else line[-1]
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+
+    def _create_examples_eec(self, lines, set_type):
+        """Creates examples for the training, dev and test sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = line[1]
+            label = None 
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+    
+    
 class StsbProcessor(DataProcessor):
     """Processor for the STS-B data set (GLUE version)."""
 
@@ -572,6 +630,7 @@ glue_tasks_num_labels = {
     "qnli": 2,
     "rte": 2,
     "wnli": 2,
+    "emotion":1,
 }
 
 glue_processors = {
@@ -585,6 +644,7 @@ glue_processors = {
     "qnli": QnliProcessor,
     "rte": RteProcessor,
     "wnli": WnliProcessor,
+    "emotion":EmotionProcessor,
 }
 
 glue_output_modes = {
@@ -598,4 +658,5 @@ glue_output_modes = {
     "qnli": "classification",
     "rte": "classification",
     "wnli": "classification",
+    "emotion":"regression",
 }

@@ -37,6 +37,7 @@ from transformers import (
     set_seed,
 )
 
+import pdb
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +149,14 @@ def main():
         else None
     )
 
+    eec_dataset = (
+        GlueDataset(data_args, tokenizer=tokenizer, mode="eec", cache_dir=model_args.cache_dir)
+        if training_args.do_predict
+        else None
+    )
+
+
+
     def build_compute_metrics_fn(task_name: str) -> Callable[[EvalPrediction], Dict]:
         def compute_metrics_fn(p: EvalPrediction):
             if output_mode == "classification":
@@ -209,7 +218,7 @@ def main():
 
     if training_args.do_predict:
         logging.info("*** Test ***")
-        test_datasets = [test_dataset]
+        test_datasets = [test_dataset, eec_dataset]
         if data_args.task_name == "mnli":
             mnli_mm_data_args = dataclasses.replace(data_args, task_name="mnli-mm")
             test_datasets.append(
@@ -244,3 +253,5 @@ def _mp_fn(index):
 
 if __name__ == "__main__":
     main()
+
+
